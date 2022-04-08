@@ -331,32 +331,73 @@ function CreateExtendedPlayer(userData)
 		return self.maxWeight
 	end
 
-	function self.canCarryItem(name, count, metadata)
+	function self.canCarryItem(items, count, metadata)
 		if Inventory then
-			return Inventory.CanCarryItem(self.source, name, count, metadata)
+			return Inventory.CanCarryItem(self.source, items, count, metadata)
 		end
 
-		local currentWeight, itemWeight = self.weight, ESX.Items[name].weight
-		local newWeight = currentWeight + (itemWeight * count)
+		if type(items) ~= 'table' then
+			items = {[items] = count}
+		end
+		local currentWeight = self.weight
+		for name,count in pairs(items) do
+			if ESX.Items[name].limit and ESX.Items[name].limit ~= -1 then
+				if count > ESX.Items[name].limit then
+					return false
+				elseif (self.getInventoryItem(name).count + count) > ESX.Items[name].limit then
+					return false
+				end
+			end
+			currentWeight = currentWeight+(ESX.Items[name].weight*count)
+		end
 
-		return newWeight <= self.maxWeight
+		return currentWeight <= self.maxWeight
 	end
 
-	function self.canSwapItem(firstItem, firstItemCount, testItem, testItemCount)
+	function self.canSwapItem(oldItems, newItems, testItem, testItemCount)
 		if Inventory then
-			return Inventory.CanSwapItem(self.source, firstItem, firstItemCount, testItem, testItemCount)
+			return Inventory.CanSwapItem(self.source, oldItems, newItems, testItem, testItemCount)
 		end
 
-		local firstItemObject = self.getInventoryItem(firstItem)
-		local testItemObject = self.getInventoryItem(testItem)
-
-		if firstItemObject.count >= firstItemCount then
-			local weightWithoutFirstItem = ESX.Math.Round(self.weight - (firstItemObject.weight * firstItemCount))
-			local weightWithTestItem = ESX.Math.Round(weightWithoutFirstItem + (testItemObject.weight * testItemCount))
-
-			return weightWithTestItem <= self.maxWeight
+		if type(oldItems) ~= 'table' then
+			oldItems = {[oldItems] = newItems}
+			newItems = {[testItem] = testItemCount}
 		end
 
+		local weightWithoutFirstItem, weightChangeItems = self.weight, 0
+		for name,count in pairs(newItems) do
+			local item = self.getInventoryItem(name)
+			if ESX.Items[name].limit and ESX.Items[name].limit ~= -1 and item.count + count > ESX.Items[name].limit then
+				return false
+			end
+			weightChangeItems = weightChangeItems + (item.weight * count)
+		end
+
+		for name,count in pairs(oldItems) do
+			local item = self.getInventoryItem(name)
+			if item.count >= count then				
+				weightWithoutFirstItem = weightWithoutFirstItem - (item.weight * count)
+			else
+				return false
+			end
+		end
+
+		local weightWithTestItem = ESX.Math.Round(weightWithoutFirstItem + weightChangeItems)
+		return weightWithTestItem <= self.maxWeight
+	end
+
+	self.swapItem = function(removeItems, addItems)
+		if type(removeItems) ~= 'table' then removeItems = {[removeItems] = 1} end
+		if type(addItems) ~= 'table' then addItems = {[addItems] = 1} end
+		if self.canSwapItem(removeItems, addItems) then
+			for name,count in pairs(removeItems) do
+				self.removeInventoryItem(name, count)
+			end
+			for name,count in pairs(addItems) do
+				self.addInventoryItem(name, count)
+			end
+			return true
+		end
 		return false
 	end
 
