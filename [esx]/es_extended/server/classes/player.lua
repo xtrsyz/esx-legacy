@@ -83,6 +83,18 @@ function CreateExtendedPlayer(userData)
 		return self.variables[k]
 	end
 
+	self.getAccountBalance = function(accountName)
+		local account = self.getAccount(accountName)
+
+		if account then
+			return account.money
+		else
+			return 0
+		end
+	end
+
+	self.getAccountMoney = self.getAccountBalance
+
 	function self.getAccounts(minimal)
 		if minimal then
 			local minimalAccounts = {}
