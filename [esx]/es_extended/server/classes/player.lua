@@ -479,7 +479,7 @@ function CreateExtendedPlayer(userData)
 		return 0
 	end
 
-	function self.removeWeapon(weaponName)
+	function self.removeWeapon(weaponName, ammo)
 		if Inventory then return end
 
 		local weaponLabel
@@ -498,7 +498,7 @@ function CreateExtendedPlayer(userData)
 		end
 
 		if weaponLabel then
-			self.triggerEvent('esx:removeWeapon', weaponName)
+			self.triggerEvent('esx:removeWeapon', weaponName, ammo)
 			self.triggerEvent('esx:removeInventoryItem', weaponLabel, false, true)
 		end
 	end

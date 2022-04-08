@@ -213,10 +213,16 @@ if not Config.OxInventory then
 	end)
 
 	RegisterNetEvent('esx:removeWeapon')
-	AddEventHandler('esx:removeWeapon', function(weapon)
+	AddEventHandler('esx:removeWeapon', function(weapon, ammo)
 		local playerPed = ESX.PlayerData.ped
 		RemoveWeaponFromPed(ESX.PlayerData.ped, GetHashKey(weapon))
-		SetPedAmmo(ESX.PlayerData.ped, GetHashKey(weapon), 0)
+		if ammo then
+			local pedAmmo = GetAmmoInPedWeapon(playerPed, weaponName)
+			local finalAmmo = math.floor(pedAmmo - ammo)
+			SetPedAmmo(ESX.PlayerData.ped, GetHashKey(weapon), finalAmmo)
+		else
+			SetPedAmmo(ESX.PlayerData.ped, GetHashKey(weapon), 0) -- remove leftover ammo
+		end
 	end)
 
 	RegisterNetEvent('esx:removeWeaponComponent')
