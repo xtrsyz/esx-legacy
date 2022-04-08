@@ -110,6 +110,8 @@ end
 
 function loadESXPlayer(identifier, playerId, isNew)
 	local userData = {
+		playerId = playerId,
+		identifier = identifier,
 		accounts = {},
 		inventory = {},
 		job = {},
@@ -265,7 +267,7 @@ function loadESXPlayer(identifier, playerId, isNew)
 		if result.height then userData.height = result.height end
 	end
 
-	local xPlayer = CreateExtendedPlayer(playerId, identifier, userData.group, userData.accounts, userData.inventory, userData.weight, userData.job, userData.loadout, userData.playerName, userData.coords)
+	local xPlayer = CreateExtendedPlayer(userData)
 	ESX.Players[playerId] = xPlayer
 
 	if userData.firstname then 
