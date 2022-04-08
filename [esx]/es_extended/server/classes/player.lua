@@ -20,6 +20,10 @@ function CreateExtendedPlayer(userData)
 		TriggerClientEvent(eventName, self.source, ...)
 	end
 
+	self.logEvent = function(eventName, ...)
+		TriggerEvent(eventName, self.source, ...)
+	end
+
 	function self.setCoords(coords)
 		self.updateCoords(coords)
 		self.triggerEvent('esx:teleport', coords)
