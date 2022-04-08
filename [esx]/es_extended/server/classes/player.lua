@@ -45,23 +45,23 @@ function CreateExtendedPlayer(userData)
 		DropPlayer(self.source, reason)
 	end
 
-	function self.setMoney(money)
+	function self.setMoney(money, detail)
 		money = ESX.Math.Round(money)
-		self.setAccountMoney('money', money)
+		self.setAccountMoney('money', money, detail)
 	end
 
 	function self.getMoney()
 		return self.getAccount('money').money
 	end
 
-	function self.addMoney(money)
+	function self.addMoney(money, detail)
 		money = ESX.Math.Round(money)
-		self.addAccountMoney('money', money)
+		self.addAccountMoney('money', money, detail)
 	end
 
-	function self.removeMoney(money)
+	function self.removeMoney(money, detail)
 		money = ESX.Math.Round(money)
-		self.removeAccountMoney('money', money)
+		self.removeAccountMoney('money', money, detail)
 	end
 
 	function self.getIdentifier()
@@ -197,24 +197,27 @@ function CreateExtendedPlayer(userData)
 		self.name = newName
 	end
 
-	function self.setAccountMoney(accountName, money)
+	function self.setAccountMoney(accountName, money, detail)
 		if money >= 0 then
 			local account = self.getAccount(accountName)
 
 			if account then
+				local prevMoney = account.money
 				local newMoney = ESX.Math.Round(money)
 				account.money = newMoney
 
 				self.triggerEvent('esx:setAccountMoney', account)
+				self.logEvent('log:setAccountMoney', account, prevMoney, detail)
 
 				if Inventory and Inventory.accounts[accountName] then
 					Inventory.SetItem(self.source, accountName, money)
 				end
+				return newMoney
 			end
 		end
 	end
 
-	function self.addAccountMoney(accountName, money)
+	function self.addAccountMoney(accountName, money, detail)
 		if money > 0 then
 			local account = self.getAccount(accountName)
 
@@ -223,15 +226,17 @@ function CreateExtendedPlayer(userData)
 				account.money = newMoney
 
 				self.triggerEvent('esx:setAccountMoney', account)
+				self.logEvent('log:addAccountMoney', account, money, detail)
 
 				if Inventory and Inventory.accounts[accountName] then
 					Inventory.AddItem(self.source, accountName, money)
 				end
+				return newMoney
 			end
 		end
 	end
 
-	function self.removeAccountMoney(accountName, money)
+	function self.removeAccountMoney(accountName, money, detail)
 		if money > 0 then
 			local account = self.getAccount(accountName)
 
@@ -240,10 +245,12 @@ function CreateExtendedPlayer(userData)
 				account.money = newMoney
 
 				self.triggerEvent('esx:setAccountMoney', account)
+				self.logEvent('log:removeAccountMoney', account, money, detail)
 
 				if Inventory and Inventory.accounts[accountName] then
 					Inventory.RemoveItem(self.source, accountName, money)
 				end
+				return newMoney
 			end
 		end
 	end
