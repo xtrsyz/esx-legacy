@@ -368,6 +368,15 @@ if not Config.OxInventory then
 		local sourceXPlayer = ESX.GetPlayerFromId(playerId)
 		local targetXPlayer = ESX.GetPlayerFromId(target)
 
+		local targetName, sourceName
+		if Config.HidePlayerName then
+			targetName = "Someone"
+			sourceName = "Someone"
+		else
+			targetName = targetXPlayer.name
+			sourceName = sourceXPlayer.name
+		end
+
 		if type == 'item_standard' then
 			local sourceItem = sourceXPlayer.getInventoryItem(itemName)
 
@@ -376,10 +385,10 @@ if not Config.OxInventory then
 					sourceXPlayer.removeInventoryItem(itemName, itemCount)
 					targetXPlayer.addInventoryItem   (itemName, itemCount)
 
-					sourceXPlayer.showNotification(_U('gave_item', itemCount, sourceItem.label, targetXPlayer.name))
-					targetXPlayer.showNotification(_U('received_item', itemCount, sourceItem.label, sourceXPlayer.name))
+					sourceXPlayer.showNotification(_U('gave_item', itemCount, sourceItem.label, targetName))
+					targetXPlayer.showNotification(_U('received_item', itemCount, sourceItem.label, sourceName))
 				else
-					sourceXPlayer.showNotification(_U('ex_inv_lim', targetXPlayer.name))
+					sourceXPlayer.showNotification(_U('ex_inv_lim', targetName))
 				end
 			else
 				sourceXPlayer.showNotification(_U('imp_invalid_quantity'))
@@ -389,8 +398,8 @@ if not Config.OxInventory then
 				sourceXPlayer.removeAccountMoney(itemName, itemCount)
 				targetXPlayer.addAccountMoney   (itemName, itemCount)
 
-				sourceXPlayer.showNotification(_U('gave_account_money', ESX.Math.GroupDigits(itemCount), Config.Accounts[itemName], targetXPlayer.name))
-				targetXPlayer.showNotification(_U('received_account_money', ESX.Math.GroupDigits(itemCount), Config.Accounts[itemName], sourceXPlayer.name))
+				sourceXPlayer.showNotification(_U('gave_account_money', ESX.Math.GroupDigits(itemCount), Config.Accounts[itemName], targetName))
+				targetXPlayer.showNotification(_U('received_account_money', ESX.Math.GroupDigits(itemCount), Config.Accounts[itemName], sourceName))
 			else
 				sourceXPlayer.showNotification(_U('imp_invalid_amount'))
 			end
@@ -408,15 +417,15 @@ if not Config.OxInventory then
 
 					if weaponObject.ammo and itemCount > 0 then
 						local ammoLabel = weaponObject.ammo.label
-						sourceXPlayer.showNotification(_U('gave_weapon_withammo', weaponLabel, itemCount, ammoLabel, targetXPlayer.name))
-						targetXPlayer.showNotification(_U('received_weapon_withammo', weaponLabel, itemCount, ammoLabel, sourceXPlayer.name))
+						sourceXPlayer.showNotification(_U('gave_weapon_withammo', weaponLabel, itemCount, ammoLabel, targetName))
+						targetXPlayer.showNotification(_U('received_weapon_withammo', weaponLabel, itemCount, ammoLabel, sourceName))
 					else
-						sourceXPlayer.showNotification(_U('gave_weapon', weaponLabel, targetXPlayer.name))
-						targetXPlayer.showNotification(_U('received_weapon', weaponLabel, sourceXPlayer.name))
+						sourceXPlayer.showNotification(_U('gave_weapon', weaponLabel, targetName))
+						targetXPlayer.showNotification(_U('received_weapon', weaponLabel, sourceName))
 					end
 				else
-					sourceXPlayer.showNotification(_U('gave_weapon_hasalready', targetXPlayer.name, weaponLabel))
-					targetXPlayer.showNotification(_U('received_weapon_hasalready', sourceXPlayer.name, weaponLabel))
+					sourceXPlayer.showNotification(_U('gave_weapon_hasalready', targetName, weaponLabel))
+					targetXPlayer.showNotification(_U('received_weapon_hasalready', sourceName, weaponLabel))
 				end
 			end
 		elseif type == 'item_ammo' then
@@ -433,13 +442,13 @@ if not Config.OxInventory then
 							sourceXPlayer.removeWeaponAmmo(itemName, itemCount)
 							targetXPlayer.addWeaponAmmo(itemName, itemCount)
 
-							sourceXPlayer.showNotification(_U('gave_weapon_ammo', itemCount, ammoLabel, weapon.label, targetXPlayer.name))
-							targetXPlayer.showNotification(_U('received_weapon_ammo', itemCount, ammoLabel, weapon.label, sourceXPlayer.name))
+							sourceXPlayer.showNotification(_U('gave_weapon_ammo', itemCount, ammoLabel, weapon.label, targetName))
+							targetXPlayer.showNotification(_U('received_weapon_ammo', itemCount, ammoLabel, weapon.label, sourceName))
 						end
 					end
 				else
-					sourceXPlayer.showNotification(_U('gave_weapon_noweapon', targetXPlayer.name))
-					targetXPlayer.showNotification(_U('received_weapon_noweapon', sourceXPlayer.name, weapon.label))
+					sourceXPlayer.showNotification(_U('gave_weapon_noweapon', targetName))
+					targetXPlayer.showNotification(_U('received_weapon_noweapon', sourceName, weapon.label))
 				end
 			end
 		end

@@ -58,3 +58,4 @@ Config.EnablePVP                = true -- Allow Player to player combat
 
 Config.Multichar                = true -- Enable support for esx_multicharacter
 Config.Identity                 = true -- Select a characters identity data before they have loaded in (this happens by default with multichar)
+Config.HidePlayerName			= false
