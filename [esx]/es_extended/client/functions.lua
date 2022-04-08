@@ -554,6 +554,24 @@ end
 function ESX.Game.GetClosestEntity(entities, isPlayerEntities, coords, modelFilter)
 	local closestEntity, closestEntityDistance, filteredEntities = -1, -1, nil
 
+	if coords and (type(coords) == 'number' or not coords.x) then
+		local _modelFilter = modelFilter
+		modelFilter = coords
+		coords = _modelFilter
+	end
+
+	if modelFilter then
+		local filter = {}
+		if type(modelFilter) == 'table' then
+			for _,model in pairs(modelFilter) do
+				filter[ESX.Game.GetHashKey(model)] = model
+			end
+		elseif modelFilter ~= '' then
+			filter[ESX.Game.GetHashKey(modelFilter)] = modelFilter
+		end
+		modelFilter = filter
+	end
+
 	if coords then
 		coords = vector3(coords.x, coords.y, coords.z)
 	else
