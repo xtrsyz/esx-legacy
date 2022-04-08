@@ -19,7 +19,7 @@ if Config.Multichar then
 		while not next(ESX.Jobs) do Wait(50) end
 
 		if not ESX.Players[src] then
-			local identifier = char..':'..ESX.GetIdentifier(src)
+			local identifier = char..':'..ESX.GetIdentifier(src, true)
 			if data then
 				createESXPlayer(identifier, src, data)
 			else
@@ -109,9 +109,11 @@ if not Config.Multichar then
 end
 
 function loadESXPlayer(identifier, playerId, isNew)
+	local license = ESX.GetIdentifier(playerId)
 	local userData = {
 		playerId = playerId,
 		identifier = identifier,
+		license = license,
 		accounts = {},
 		inventory = {},
 		job = {},

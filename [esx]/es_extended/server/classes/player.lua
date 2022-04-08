@@ -13,7 +13,6 @@ function CreateExtendedPlayer(userData)
 	self.source = self.playerId
 	self.variables = {}
 	self.maxWeight = Config.MaxWeight
-	if Config.Multichar then self.license = 'license'.. identifier:sub(identifier:find(':'), identifier:len()) else self.license = 'license:'..identifier end
 
 	ExecuteCommand(('add_principal identifier.%s group.%s'):format(self.license, self.group))
 

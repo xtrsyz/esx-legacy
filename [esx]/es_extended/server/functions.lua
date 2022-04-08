@@ -245,11 +245,16 @@ function ESX.GetPlayerFromIdentifier(identifier)
 	end
 end
 
-function ESX.GetIdentifier(playerId)
-	for k,v in ipairs(GetPlayerIdentifiers(playerId)) do
-		if string.match(v, 'license:') then
-			local identifier = string.gsub(v, 'license:', '')
-			return identifier
+function ESX.GetIdentifier(playerId, minimal)
+	local identifier = Config.PrimaryIdentifier..':'
+	for k,v in pairs(GetPlayerIdentifiers(playerId)) do
+		if string.match(v, identifier) then
+			if minimal then
+				identifier = string.gsub(v, identifier, '')
+				return identifier
+			else				
+				return v
+			end			
 		end
 	end
 end
