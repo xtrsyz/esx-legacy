@@ -77,39 +77,60 @@ function ESX.SetPlayerData(key, val)
 	end
 end
 
-function ESX.ShowNotification(msg)
-	BeginTextCommandThefeedPost('STRING')
-	AddTextComponentSubstringPlayerName(msg)
-	EndTextCommandThefeedPostTicker(0,1)
+function ESX.ShowNotification(msg, flash, saveToBrief, hudColorIndex)
+	-- BeginTextCommandThefeedPost('BeginTextCommandThefeedPost')
+	-- AddTextComponentSubstringPlayerName(msg)
+	-- EndTextCommandThefeedPostTicker(0,1)
+	if Config.ShowNotification then
+		if saveToBrief == nil then saveToBrief = true end
+		BeginTextCommandThefeedPost('BeginTextCommandThefeedPost')
+		AddTextComponentSubstringPlayerName(msg)
+		if hudColorIndex then ThefeedNextPostBackgroundColor(hudColorIndex) end
+		EndTextCommandThefeedPostTicker(flash or false, saveToBrief)
+	else
+		TriggerEvent('showNotification', msg, flash, saveToBrief, hudColorIndex)
+	end
 end
 
 function ESX.ShowAdvancedNotification(sender, subject, msg, textureDict, iconType, flash, saveToBrief, hudColorIndex)
-	if saveToBrief == nil then saveToBrief = true end
-	AddTextEntry('esxAdvancedNotification', msg)
-	BeginTextCommandThefeedPost('esxAdvancedNotification')
-	if hudColorIndex then ThefeedSetNextPostBackgroundColor(hudColorIndex) end
-	EndTextCommandThefeedPostMessagetext(textureDict, textureDict, false, iconType, sender, subject)
-	EndTextCommandThefeedPostTicker(flash or false, saveToBrief)
+	if Config.ShowAdvancedNotification then
+		if saveToBrief == nil then saveToBrief = true end
+		AddTextEntry('esxAdvancedNotification', msg)
+		BeginTextCommandThefeedPost('esxAdvancedNotification')
+		if hudColorIndex then ThefeedSetNextPostBackgroundColor(hudColorIndex) end
+		EndTextCommandThefeedPostMessagetext(textureDict, textureDict, false, iconType, sender, subject)
+		EndTextCommandThefeedPostTicker(flash or false, saveToBrief)
+	else
+		TriggerEvent('showAdvancedNotification', sender, subject, msg, textureDict, iconType, flash, saveToBrief, hudColorIndex)
+	end
 end
 
 function ESX.ShowHelpNotification(msg, thisFrame, beep, duration)
-	AddTextEntry('esxHelpNotification', msg)
+	if Config.ShowHelpNotification then
+		AddTextEntry('esxHelpNotification', msg)
 
-	if thisFrame then
-		DisplayHelpTextThisFrame('esxHelpNotification', false)
+		if thisFrame then
+			DisplayHelpTextThisFrame('esxHelpNotification', false)
+		else
+			if beep == nil then beep = true end
+			BeginTextCommandDisplayHelp('esxHelpNotification')
+			EndTextCommandDisplayHelp(0, false, beep, duration or -1)
+		end
 	else
-		if beep == nil then beep = true end
-		BeginTextCommandDisplayHelp('esxHelpNotification')
-		EndTextCommandDisplayHelp(0, false, beep, duration or -1)
+		TriggerEvent('showHelpNotification', msg, thisFrame, beep, duration)
 	end
 end
 
 function ESX.ShowFloatingHelpNotification(msg, coords)
-	AddTextEntry('esxFloatingHelpNotification', msg)
-	SetFloatingHelpTextWorldPosition(1, coords)
-	SetFloatingHelpTextStyle(1, 1, 2, -1, 3, 0)
-	BeginTextCommandDisplayHelp('esxFloatingHelpNotification')
-	EndTextCommandDisplayHelp(2, false, false, -1)
+	if Config.ShowFloatingHelpNotification then
+		AddTextEntry('esxFloatingHelpNotification', msg)
+		SetFloatingHelpTextWorldPosition(1, coords)
+		SetFloatingHelpTextStyle(1, 1, 2, -1, 3, 0)
+		BeginTextCommandDisplayHelp('esxFloatingHelpNotification')
+		EndTextCommandDisplayHelp(2, false, false, -1)
+	else
+		TriggerEvent('showFloatingHelpNotification', msg, coords)
+	end
 end
 
 function ESX.TriggerServerCallback(name, cb, ...)
@@ -122,6 +143,13 @@ function ESX.TriggerServerCallback(name, cb, ...)
 	else
 		Core.CurrentRequestId = 0
 	end
+end
+
+ESX.UI.rightInfoNotification = function(label)
+	SendNUIMessage({
+		action = 'rightInfoNotification',
+		add    = label,
+	})
 end
 
 function ESX.UI.HUD.SetDisplay(opacity)

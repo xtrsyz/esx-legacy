@@ -78,6 +78,17 @@
 		});
 	};
 
+	ESX.rightInfoNotification = function (label) {
+
+		let elem = $('<div>' + label + '</div>');
+
+		$('#inventory_notifications').append(elem);
+
+		$(elem).delay(3000).fadeOut(1000, function () {
+			elem.remove();
+		});
+	};
+
 	window.onData = (data) => {
 		switch (data.action) {
 			case 'setHUDDisplay': {
@@ -103,6 +114,11 @@
 			case 'resetHUDElements': {
 				ESX.resetHUDElements();
 				break;
+			}
+
+			case 'rightInfoNotification': {
+				ESX.rightInfoNotification(data.label);
+				break
 			}
 
 			case 'inventoryNotification': {
