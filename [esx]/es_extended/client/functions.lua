@@ -628,6 +628,11 @@ function ESX.Game.GetVehicleProperties(vehicle)
 			end
 		end
 
+		local wheelHealth = {}
+		for wheelId=1, GetVehicleNumberOfWheels(vehicle) do
+			wheelHealth[wheelId] = GetVehicleWheelHealth(vehicle, wheelId)
+		end
+
 		return {
 			model             = GetEntityModel(vehicle),
 
@@ -637,6 +642,7 @@ function ESX.Game.GetVehicleProperties(vehicle)
 			bodyHealth        = ESX.Math.Round(GetVehicleBodyHealth(vehicle), 1),
 			engineHealth      = ESX.Math.Round(GetVehicleEngineHealth(vehicle), 1),
 			tankHealth        = ESX.Math.Round(GetVehiclePetrolTankHealth(vehicle), 1),
+			wheelHealth        = wheelHealth,
 
 			fuelLevel         = ESX.Math.Round(GetVehicleFuelLevel(vehicle), 1),
 			dirtLevel         = ESX.Math.Round(GetVehicleDirtLevel(vehicle), 1),
@@ -657,9 +663,9 @@ function ESX.Game.GetVehicleProperties(vehicle)
 				IsVehicleNeonLightEnabled(vehicle, 3)
 			},
 
-			neonColor         = table.pack(GetVehicleNeonLightsColour(vehicle)),
+			neonColor         = {GetVehicleNeonLightsColour(vehicle)},
 			extras            = extras,
-			tyreSmokeColor    = table.pack(GetVehicleTyreSmokeColor(vehicle)),
+			tyreSmokeColor    = {GetVehicleTyreSmokeColor(vehicle)},
 
 			modSpoilers       = GetVehicleMod(vehicle, 0),
 			modFrontBumper    = GetVehicleMod(vehicle, 1),
@@ -709,7 +715,9 @@ function ESX.Game.GetVehicleProperties(vehicle)
 			modTrimB          = GetVehicleMod(vehicle, 44),
 			modTank           = GetVehicleMod(vehicle, 45),
 			modWindows        = GetVehicleMod(vehicle, 46),
-			modLivery         = GetVehicleLivery(vehicle)
+			modStandardLivery = GetVehicleMod(vehicle, 48),
+			modLivery         = GetVehicleLivery(vehicle),
+			bulletProofTyres  = not GetVehicleTyresCanBurst(vehicle)
 		}
 	else
 		return
@@ -801,10 +809,9 @@ function ESX.Game.SetVehicleProperties(vehicle, props)
 		if props.modTank then SetVehicleMod(vehicle, 45, props.modTank, false) end
 		if props.modWindows then SetVehicleMod(vehicle, 46, props.modWindows, false) end
 
-		if props.modLivery then
-			SetVehicleMod(vehicle, 48, props.modLivery, false)
-			SetVehicleLivery(vehicle, props.modLivery)
-		end
+		if props.bulletProofTyres ~= nil then SetVehicleTyresCanBurst(vehicle, not props.bulletProofTyres) end
+		if props.modLivery then SetVehicleLivery(vehicle, props.modLivery) end
+		if props.modStandardLivery then SetVehicleMod(vehicle, 48, props.modStandardLivery, false) end
 	end
 end
 
