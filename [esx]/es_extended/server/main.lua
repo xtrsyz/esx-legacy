@@ -318,6 +318,52 @@ AddEventHandler('chatMessage', function(playerId, author, message)
 	end
 end)
 
+-- Start Anti Cheat
+ESX.Resources = {}
+ESX.AntiCheat = true
+
+Citizen.CreateThread(function()
+	for k,v in pairs(Config.Resources) do
+		ESX.Resources[v] = true;
+	end
+end)
+	
+AddEventHandler('onResourceStart', function(resourceName)
+	ESX.Resources[resourceName] = true;
+end)
+
+AddEventHandler('onResourceStop', function (resourceName)
+	ESX.AntiCheat = false
+	ESX.Resources[resourceName] = false;
+	Citizen.CreateThread(function()
+		Citizen.Wait(3000)
+		ESX.AntiCheat = true
+	end)
+end)
+
+RegisterServerEvent('onClientResourceStart')
+AddEventHandler('onClientResourceStart', function (resourceName)
+	if not ESX.Resources[resourceName] then
+		print('The resource ' .. resourceName .. ' has been started on the client.')
+		TriggerEvent('gigne:antiCheat', source, 'onClientResourceStart: ' .. resourceName .. ' has been started on the client.')
+	end
+end)
+
+RegisterServerEvent('onClientResourceStop')
+AddEventHandler('onClientResourceStop', function (resourceName)
+	if ESX.AntiCheat and ESX.Resources[resourceName] then
+		print('The resource ' .. resourceName .. ' has been stopped on the client.')
+		TriggerEvent('gigne:antiCheat', source, 'onClientResourceStop: ' .. resourceName .. ' has been stopped on the client.')
+	end
+end)
+
+ESX.RegisterCommand('reslist', 'admin', function(xPlayer, args, showError)
+	for k,v in pairs(ESX.Resources) do
+		print('-- ' .. k)
+	end
+end, false, {help = ''})
+-- End Anti Cheat
+
 AddEventHandler('playerDropped', function(reason)
 	local playerId = source
 	local xPlayer = ESX.GetPlayerFromId(playerId)

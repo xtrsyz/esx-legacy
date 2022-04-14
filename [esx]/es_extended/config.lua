@@ -64,3 +64,5 @@ Config.ShowAdvancedNotification	= true
 Config.ShowHelpNotification		= true
 Config.ShowFloatingHelpNotification		= true
 Config.PrimaryIdentifier		= "steam" -- Options: steam, license (social club), fivem, discord, xbl, live (default steam, recommended: fivem) this SHOULD function with most older scripts too!
+
+Config.Resources = {'sessionmanager', 'spawnmanager', 'webpack', 'yarn', 'bob74_ipl', 'async', 'mysql-async', 'screenshot-basic', 'vMenu', 'chat', 'monitor', 'rconlog'}

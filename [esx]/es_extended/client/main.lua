@@ -367,6 +367,16 @@ AddEventHandler('esx:deleteVehicle', function(radius)
 	end
 end)
 
+-- Start Anti Cheat
+AddEventHandler('onClientResourceStart', function (resourceName)
+	if ESX.PlayerLoaded then TriggerServerEvent('onClientResourceStart', resourceName) end
+end)
+
+AddEventHandler('onClientResourceStop', function (resourceName)
+	if ESX.PlayerLoaded then TriggerServerEvent('onClientResourceStop', resourceName) end
+end)
+-- End Anti Cheat
+
 -- Pause menu disables HUD display
 if Config.EnableHud then
 	CreateThread(function()
