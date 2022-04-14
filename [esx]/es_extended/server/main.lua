@@ -738,3 +738,32 @@ AddEventHandler('txAdmin:events:scheduledRestart', function(eventData)
 		end)
 	end
 end)
+
+if Config.EssentialMode then
+	-- Add support for EssentialMode >6.4.x
+	AddEventHandler("es:setMoney", function(user, value) ESX.GetPlayerFromId(user).setMoney(value, true) end)
+	AddEventHandler("es:addMoney", function(user, value) ESX.GetPlayerFromId(user).addMoney(value, true) end)
+	AddEventHandler("es:removeMoney", function(user, value) ESX.GetPlayerFromId(user).removeMoney(value, true) end)
+	AddEventHandler("es:set", function(user, key, value) ESX.GetPlayerFromId(user).set(key, value, true) end)
+
+	AddEventHandler("es_db:doesUserExist", function(identifier, cb)
+		cb(true)
+	end)
+
+	AddEventHandler('es_db:retrieveUser', function(identifier, cb, tries)
+		tries = tries or 0
+
+		if(tries < 500)then
+			tries = tries + 1
+			local player = ESX.GetPlayerFromIdentifier(identifier)
+
+			if player then
+				cb({permission_level = 0, money = player.getMoney(), bank = 0, identifier = player.identifier, license = player.get("license"), group = player.group, roles = ""}, false, true)
+			else
+				Citizen.SetTimeout(100, function()
+					TriggerEvent("es_db:retrieveUser", identifier, cb, tries)
+				end)
+			end
+		end
+	end)
+end

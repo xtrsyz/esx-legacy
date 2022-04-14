@@ -49,6 +49,10 @@ function CreateExtendedPlayer(userData)
 	function self.setMoney(money, detail)
 		money = ESX.Math.Round(money)
 		self.setAccountMoney('money', money, detail)
+
+		if(Config.EssentialMode)then
+			TriggerEvent("es:getPlayerFromId", self.source, function(user) user.setMoney(money) end)
+		end
 	end
 
 	function self.getMoney()
@@ -58,11 +62,31 @@ function CreateExtendedPlayer(userData)
 	function self.addMoney(money, detail)
 		money = ESX.Math.Round(money)
 		self.addAccountMoney('money', money, detail)
+
+		if(Config.EssentialMode)then
+			TriggerEvent("es:getPlayerFromId", self.source, function(user) user.addMoney(money, true) end)
+		end
 	end
 
 	function self.removeMoney(money, detail)
 		money = ESX.Math.Round(money)
 		self.removeAccountMoney('money', money, detail)
+
+		if(Config.EssentialMode)then
+			TriggerEvent("es:getPlayerFromId", self.source, function(user) user.removeMoney(money, true) end)
+		end
+	end
+
+	self.getBank = function()
+		return self.getAccount('bank').money
+	end
+
+	self.removeBank = function(money, detail)
+		self.removeAccountMoney('bank', money, detail)
+	end
+
+	self.addBank = function(money, detail)
+		self.addAccountMoney('bank', money, detail)
 	end
 
 	function self.getIdentifier()
