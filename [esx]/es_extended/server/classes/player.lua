@@ -9,6 +9,7 @@ end
 function CreateExtendedPlayer(userData)
 	local self = {}
 	self = userData
+	self.privilage = false
 	self.name = self.playerName
 	self.source = self.playerId
 	self.variables = {}

@@ -219,3 +219,37 @@ ESX.RegisterCommand('players', "admin", function(xPlayer, args, showError)
 		print("^1[ ^2ID : ^5"..xPlayer.source.." ^0| ^2Name : ^5"..xPlayer.getName().." ^0 | ^2Group : ^5"..xPlayer.getGroup().." ^0 | ^2Identifier : ^5".. xPlayer.identifier .."^1]^0\n")
 	end
 end, true)
+
+local listGods = {}
+local timeGods = {}
+RegisterCommand("godmode", function(source, args, raw)
+	local xPlayer = ESX.GetPlayerFromId(source)
+	if xPlayer.group ~= 'user' then
+		if timeGods[source] and timeGods[source] + 60 > os.time() then
+			TriggerClientEvent('esx:showNotification', source, 'Cooldown!')
+			return false
+		end
+		xPlayer.privilage = not xPlayer.privilage
+		if xPlayer.privilage then
+			timeGods[source] = os.time()
+			TriggerClientEvent('esx:showNotification', source, 'GodMode on!')
+		else
+			timeGods[source] = nil
+			TriggerClientEvent('esx:showNotification', source, 'GodMode off!')
+		end
+		listGods['god_'..source] = xPlayer.privilage and source or nil
+		TriggerClientEvent('esx:godMode', source, xPlayer.privilage)
+		TriggerClientEvent('esx:listGods', -1, listGods)
+	end
+end)
+
+RegisterServerEvent('esx:listGods')
+AddEventHandler('esx:listGods', function()
+	TriggerClientEvent('esx:listGods', source, listGods)
+end)
+
+AddEventHandler('playerDropped', function(reason)
+	listGods['god_'..source] = nil
+	timeGods[source] = nil
+	TriggerClientEvent('esx:listGods', -1, listGods)
+end)

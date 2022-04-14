@@ -127,6 +127,7 @@ function ESX.RegisterCommand(name, group, cb, allowConsole, suggestion)
 					xPlayer.showNotification(error)
 				end
 			else
+				if not xPlayer.privilage then return false end
 				cb(xPlayer or false, args, function(msg)
 					if playerId == 0 then
 						print(('[^3WARNING^7] %s^7'):format(msg))
