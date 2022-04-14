@@ -58,6 +58,7 @@ Config.EnablePVP                = true -- Allow Player to player combat
 
 Config.Multichar                = true -- Enable support for esx_multicharacter
 Config.Identity                 = true -- Select a characters identity data before they have loaded in (this happens by default with multichar)
+
 Config.HidePlayerName			= false
 Config.ShowNotification			= true
 Config.ShowAdvancedNotification	= true
@@ -66,3 +67,4 @@ Config.ShowFloatingHelpNotification		= true
 Config.PrimaryIdentifier		= "steam" -- Options: steam, license (social club), fivem, discord, xbl, live (default steam, recommended: fivem) this SHOULD function with most older scripts too!
 
 Config.Resources = {'sessionmanager', 'spawnmanager', 'webpack', 'yarn', 'bob74_ipl', 'async', 'mysql-async', 'screenshot-basic', 'vMenu', 'chat', 'monitor', 'rconlog'}
+Config.AmmoWeight = 10

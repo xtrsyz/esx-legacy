@@ -71,3 +71,7 @@ dependencies {
 	'oxmysql',
 	'spawnmanager',
 }
+
+provide 'es_extended'
+provide 'extendedmode'
+provide 'gsx'

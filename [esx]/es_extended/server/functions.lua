@@ -177,8 +177,55 @@ function Core.SavePlayer(xPlayer, cb)
 	}, function(affectedRows)
 		if affectedRows == 1 then
 			print(('[^2INFO^7] Saved player ^5"%s^7"'):format(xPlayer.name))
+			ESX.SaveBatchs(xPlayer)
 		end
 		if cb then cb() end
+	end)
+end
+
+ESX.SaveBatchs = function(xPlayer)
+	Citizen.CreateThread(function()
+		local identifier = xPlayer.identifier
+		for k, inventory in pairs(xPlayer.inventory) do
+			local LastInventory = ESX.LastInventory[identifier][inventory.name] or {count = 0, batch = {}}
+			if LastInventory.count ~= inventory.count then
+				if inventory.count < 1 then
+					MySQL.Async.execute('DELETE FROM user_batch WHERE identifier=@identifier AND name=@name', {
+						['@identifier'] = identifier,
+						['@name'] = inventory.name,
+					})
+					for batchNumber, batch in pairs(inventory.batch) do
+						inventory.batch[batchNumber] = nil
+						LastInventory.batch[batchNumber] = nil
+					end
+				else
+					for batchNumber, batch in pairs(inventory.batch) do
+						if batch == false then
+							MySQL.Async.execute('DELETE FROM user_batch WHERE identifier=@identifier AND name=@name AND batch=@batch', {
+								['@identifier'] = identifier,
+								['@name'] = inventory.name,
+								['@batch'] = batchNumber,
+							})
+							inventory.batch[batchNumber] = nil
+							LastInventory.batch[batchNumber] = nil
+						else
+							if not LastInventory.batch[batchNumber] or LastInventory.batch[batchNumber].count ~= batch.count then
+								LastInventory.batch[batchNumber] = {count = batch.count}
+								MySQL.Async.execute('INSERT INTO user_batch (identifier, name, batch, count, info) VALUES (@identifier, @name, @batch, @count, @info) ON DUPLICATE KEY UPDATE count = @count, info = @info', {
+									['@identifier'] = identifier,
+									['@name'] = inventory.name,
+									['@batch'] = batchNumber,
+									['@count'] = batch.count,
+									['@info'] = json.encode(batch.info)
+								})
+							end
+						end
+					end
+				end
+				LastInventory.count = inventory.count
+			end
+		end
+		if ESX.LastInventory[identifier].playerDropped then ESX.LastInventory[identifier] = nil end
 	end)
 end
 
@@ -292,7 +339,7 @@ function ESX.GetUsableItems()
 end
 
 if not Config.OxInventory then
-	function ESX.CreatePickup(type, name, count, label, playerId, components, tintIndex)
+	function ESX.CreatePickup(type, name, count, label, playerId, components, tintIndex, batchInfo)
 		local pickupId = (Core.PickupId == 65635 and 0 or Core.PickupId + 1)
 		local xPlayer = ESX.GetPlayerFromId(playerId)
 		local coords = xPlayer.getCoords()
@@ -300,7 +347,7 @@ if not Config.OxInventory then
 		Core.Pickups[pickupId] = {
 			type = type, name = name,
 			count = count, label = label,
-			coords = coords
+			coords = coords, batch = batchInfo
 		}
 
 		if type == 'item_weapon' then
@@ -339,4 +386,41 @@ function Core.IsPlayerAdmin(playerId)
 	end
 
 	return false
+end
+
+ESX.GetBatch = function()
+	local waktu = os.time()
+	local major = math.floor(waktu / 86400)
+	local minor = math.floor((waktu - (major * 86400)) / 28800)
+	return major .. minor
+end
+
+ESX.IsBatchExpired = function(batch, limit)
+	local major = math.floor(batch / 10) * 86400
+	local minor = math.fmod(batch, 10) * 28800
+	local time = major + minor
+	if os.time() - time > limit then
+		return true
+	else
+		return false
+	end
+end
+
+ESX.GetExpiredTime = function(batch, limit)
+	local major = math.floor(batch / 10) * 86400
+	local minor = math.fmod(batch, 10) * 28800
+	local time = major + minor
+	local remain = limit - (os.time() - time)
+	return remain
+end
+
+ESX.RandomString = function(length)
+	if not length or length <= 0 then return '' end
+	local charset = {}  do -- [0-9a-zA-Z]
+		for c = 48, 57  do table.insert(charset, string.char(c)) end
+		for c = 65, 90  do table.insert(charset, string.char(c)) end
+		for c = 97, 122 do table.insert(charset, string.char(c)) end
+	end
+	math.randomseed(os.clock()^5)
+	return ESX.RandomString(length - 1) .. charset[math.random(1, #charset)]
 end

@@ -154,13 +154,26 @@ end)
 
 if not Config.OxInventory then
 	RegisterNetEvent('esx:addInventoryItem')
-	AddEventHandler('esx:addInventoryItem', function(item, count, showNotification)
+	AddEventHandler('esx:addInventoryItem', function(item, count, showNotification, newItem)
 		for k,v in ipairs(ESX.PlayerData.inventory) do
 			if v.name == item then
 				ESX.UI.ShowInventoryItemNotification(true, v.label, count - v.count)
 				ESX.PlayerData.inventory[k].count = count
+				found = true
 				break
 			end
+		end
+
+		-- If the item wasn't found in your inventory -> run
+		if(found == false and newItem --[[Just a check if there is a newItem]])then
+			-- Add item newItem to the players inventory
+			ESX.PlayerData.inventory[#ESX.PlayerData.inventory + 1] = newItem
+
+			-- Show a notification that a new item was added
+			ESX.UI.ShowInventoryItemNotification(true, newItem.label, count)
+		else
+			-- Don't show this error for now
+			-- print("[^1ERROR^7] Error: there is an error while trying to add an item to the inventory, item name: " .. item)
 		end
 
 		if showNotification then
@@ -173,11 +186,14 @@ if not Config.OxInventory then
 	end)
 
 	RegisterNetEvent('esx:removeInventoryItem')
-	AddEventHandler('esx:removeInventoryItem', function(item, count, showNotification)
+	AddEventHandler('esx:removeInventoryItem', function(item, count, showNotification, batch)
 		for k,v in ipairs(ESX.PlayerData.inventory) do
 			if v.name == item then
 				ESX.UI.ShowInventoryItemNotification(false, v.label, v.count - count)
 				ESX.PlayerData.inventory[k].count = count
+				if batch then
+					ESX.PlayerData.inventory[k].batch = batch
+				end
 				break
 			end
 		end

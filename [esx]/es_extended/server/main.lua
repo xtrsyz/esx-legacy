@@ -109,6 +109,9 @@ if not Config.Multichar then
 end
 
 function loadESXPlayer(identifier, playerId, isNew)
+	local tasks = {}
+	local batch = {}
+	local batchCount = {}
 	local license = ESX.GetIdentifier(playerId)
 	local userData = {
 		playerId = playerId,
@@ -123,8 +126,21 @@ function loadESXPlayer(identifier, playerId, isNew)
 	}
 
 	local result = MySQL.prepare.await(loadPlayer, { identifier })
+	local resultBatch = MySQL.query.await('SELECT * FROM user_batch WHERE identifier = @identifier', {['@identifier'] = identifier})
 	local job, grade, jobObject, gradeObject = result.job, tostring(result.job_grade)
 	local foundAccounts, foundItems = {}, {}
+
+	-- Batch
+	if resultBatch then
+		for _,value in pairs(resultBatch) do
+			if not batch[value.name] then 
+				batch[value.name] = {}
+				batchCount[value.name] = 0
+			end
+			batch[value.name][value.batch] = {count = value.count, info = json.decode(value.info)}
+			batchCount[value.name] = batchCount[value.name] + value.count
+		end
+	end
 
 	-- Accounts
 	if result.accounts and result.accounts ~= '' then
@@ -185,22 +201,37 @@ function loadESXPlayer(identifier, playerId, isNew)
 
 		for name,item in pairs(ESX.Items) do
 			local count = foundItems[name] or 0
-			if count > 0 then userData.weight = userData.weight + (item.weight * count) end
-
-			table.insert(userData.inventory, {
-				name = name,
-				count = count,
-				label = item.label,
-				weight = item.weight,
-				usable = Core.UsableItemsCallbacks[name] ~= nil,
-				rare = item.rare,
-				canRemove = item.canRemove
-			})
+			if count > 0 then
+				if item.weapon then
+					userData.weight = userData.weight + item.weight + (count * item.ammo_weight)
+				else
+					userData.weight = userData.weight + (item.weight * count)
+				end
+				local newItem = {}
+				for key,val in pairs(item) do
+					newItem[key] = val
+				end
+				newItem.count = count
+				newItem.usable = Core.UsableItemsCallbacks[name] ~= nil
+				table.insert(userData.inventory, newItem)
+			end
 		end
 
 		table.sort(userData.inventory, function(a, b)
 			return a.label < b.label
 		end)
+
+		ESX.LastInventory[identifier] = {}
+		for k,v in pairs(userData.inventory) do
+			if batch[v.name] then
+				v.batch = batch[v.name]
+				v.batchCount = batchCount[v.name]
+			else
+				v.batch = {}
+				v.batchCount = 0
+			end
+			ESX.LastInventory[identifier][v.name] = {count = v.count, batch = ESX.Table.Clone(v.batch)}
+		end
 	else
 		if result.inventory and result.inventory ~= '' then
 			userData.inventory = json.decode(result.inventory)
@@ -234,11 +265,16 @@ function loadESXPlayer(identifier, playerId, isNew)
 
 					table.insert(userData.loadout, {
 						name = name,
-						ammo = weapon.ammo,
 						label = label,
+						ammo = weapon.ammo,
+						quality = weapon.quality,
+						serial = weapon.serial,
 						components = weapon.components,
 						tintIndex = weapon.tintIndex
 					})
+				end
+				if ESX.Items[name] then
+					userData.weight = userData.weight + ESX.Items[name].weight + (weapon.ammo * ESX.Items[name].ammo_weight)
 				end
 			end
 		end
@@ -400,6 +436,17 @@ AddEventHandler('esx:updateCoords', function(coords)
 	end
 end)
 
+RegisterNetEvent('esx:updateHealth')
+AddEventHandler('esx:updateHealth', function(health, armour)
+	local xPlayer = ESX.GetPlayerFromId(source)
+
+	if xPlayer then
+		if type(health) == 'number' and type(armour) == 'number' then
+			xPlayer.updateHealth(health, armour)
+		end
+	end
+end)
+
 if not Config.OxInventory then
 	RegisterNetEvent('esx:updateWeaponAmmo')
 	AddEventHandler('esx:updateWeaponAmmo', function(weaponName, ammoCount)
@@ -430,8 +477,10 @@ if not Config.OxInventory then
 
 			if itemCount > 0 and sourceItem.count >= itemCount then
 				if targetXPlayer.canCarryItem(itemName, itemCount) then
-					sourceXPlayer.removeInventoryItem(itemName, itemCount)
-					targetXPlayer.addInventoryItem   (itemName, itemCount)
+					local batchInfo = item and item.info or false
+					local batchNumber = item and item.batch or false
+					sourceXPlayer.removeInventoryItem(itemName, itemCount, batchNumber)
+					targetXPlayer.addInventoryItem   (itemName, itemCount, batchInfo)
 
 					sourceXPlayer.showNotification(_U('gave_item', itemCount, sourceItem.label, targetName))
 					targetXPlayer.showNotification(_U('received_item', itemCount, sourceItem.label, sourceName))
@@ -503,9 +552,11 @@ if not Config.OxInventory then
 	end)
 
 	RegisterNetEvent('esx:removeInventoryItem')
-	AddEventHandler('esx:removeInventoryItem', function(type, itemName, itemCount)
+	AddEventHandler('esx:removeInventoryItem', function(type, itemName, itemCount, item)
 		local playerId = source
 		local xPlayer = ESX.GetPlayerFromId(source)
+		local batchNumber = item and item.batch or false
+		local itemInfo = item and item.info or false
 
 		if type == 'item_standard' then
 			if itemCount == nil or itemCount < 1 then
@@ -516,9 +567,9 @@ if not Config.OxInventory then
 				if (itemCount > xItem.count or xItem.count < 1) then
 					xPlayer.showNotification(_U('imp_invalid_quantity'))
 				else
-					xPlayer.removeInventoryItem(itemName, itemCount)
+					xPlayer.removeInventoryItem(itemName, itemCount, batchNumber)
 					local pickupLabel = ('~y~%s~s~ [~b~%s~s~]'):format(xItem.label, itemCount)
-					ESX.CreatePickup('item_standard', itemName, itemCount, pickupLabel, playerId)
+					ESX.CreatePickup('item_standard', itemName, itemCount, pickupLabel, playerId, nil, nil, itemInfo)
 					xPlayer.showNotification(_U('threw_standard', itemCount, xItem.label))
 				end
 			end
@@ -539,35 +590,58 @@ if not Config.OxInventory then
 			end
 		elseif type == 'item_weapon' then
 			itemName = string.upper(itemName)
+			local _, weapon = xPlayer.getWeapon(itemName)
+			local _, weaponObject = ESX.GetWeapon(itemName)
+			local components, pickupLabel = ESX.Table.Clone(weapon.components)
 
-			if xPlayer.hasWeapon(itemName) then
-				local _, weapon = xPlayer.getWeapon(itemName)
-				local _, weaponObject = ESX.GetWeapon(itemName)
-				local components, pickupLabel = ESX.Table.Clone(weapon.components)
-				xPlayer.removeWeapon(itemName)
+			if itemInfo and itemInfo.serial ~= weapon.serial then
+				local xItem = xPlayer.getInventoryItem(itemName)
 
-				if weaponObject.ammo and weapon.ammo > 0 then
-					local ammoLabel = weaponObject.ammo.label
-					pickupLabel = ('~y~%s~s~ [~g~%s~s~ %s]'):format(weapon.label, weapon.ammo, ammoLabel)
-					xPlayer.showNotification(_U('threw_weapon_ammo', weapon.label, weapon.ammo, ammoLabel))
+				if (itemCount > xItem.count or xItem.count < 1) then
+					xPlayer.showNotification(_U('imp_invalid_quantity'))
 				else
-					pickupLabel = ('~y~%s~s~'):format(weapon.label)
-					xPlayer.showNotification(_U('threw_weapon', weapon.label))
-				end
+					xPlayer.removeInventoryItem(itemName, itemCount, batchNumber)
+					if weaponObject.ammo and xItem.count > 0 then
+						local ammoLabel = weaponObject.ammo.label
+						pickupLabel = ('~y~%s~s~ [~g~%s~s~]'):format(xItem.label, xItem.count)
+						xPlayer.showNotification(_U('threw_weapon_ammo', xItem.label, xItem.count, ammoLabel))
+					else
+						pickupLabel = ('~y~%s~s~'):format(xItem.label)
+						xPlayer.showNotification(_U('threw_weapon', xItem.label))
+					end
 
-				ESX.CreatePickup('item_weapon', itemName, weapon.ammo, pickupLabel, playerId, components, weapon.tintIndex)
-			end
+					ESX.CreatePickup('item_weapon', itemName, xItem.count, pickupLabel, playerId, itemInfo.components, itemInfo.tintIndex, itemInfo)
+				end
+			else
+				if xPlayer.hasWeapon(itemName) then
+					xPlayer.removeWeapon(itemName)
+
+					if weaponObject.ammo and weapon.ammo > 0 then
+						local ammoLabel = weaponObject.ammo.label
+						pickupLabel = ('~y~%s~s~ [~g~%s~s~ %s]'):format(weapon.label, weapon.ammo, ammoLabel)
+						xPlayer.showNotification(_U('threw_weapon_ammo', weapon.label, weapon.ammo, ammoLabel))
+					else
+						pickupLabel = ('~y~%s~s~'):format(weapon.label)
+						xPlayer.showNotification(_U('threw_weapon', weapon.label))
+					end
+					itemInfo = {batch = weapon.serial, quality = weapon.quality, serial = weapon.serial, count = weapon.ammo, components = weapon.components, tintIndex = weapon.tintIndex}
+					ESX.CreatePickup('item_weapon', itemName, weapon.ammo, pickupLabel, playerId, components, weapon.tintIndex, itemInfo)
+				end
+			end			
 		end
 	end)
 
 
 	RegisterNetEvent('esx:useItem')
-	AddEventHandler('esx:useItem', function(itemName)
+	AddEventHandler('esx:useItem', function(itemName, data)
 		local xPlayer = ESX.GetPlayerFromId(source)
 		local count = xPlayer.getInventoryItem(itemName).count
 
+		local batchNumber = data and data.batch or nil
+		xPlayer.set('removeBatch', batchNumber)
+
 		if count > 0 then
-			ESX.UseItem(source, itemName)
+			ESX.UseItem(source, itemName, batchNumber)
 		else
 			xPlayer.showNotification(_U('act_imp'))
 		end
@@ -580,7 +654,7 @@ if not Config.OxInventory then
 		if pickup then
 			if pickup.type == 'item_standard' then
 				if xPlayer.canCarryItem(pickup.name, pickup.count) then
-					xPlayer.addInventoryItem(pickup.name, pickup.count)
+					xPlayer.addInventoryItem(pickup.name, pickup.count, pickup.batch)
 					success = true
 				else
 					xPlayer.showNotification(_U('threw_cannot_pickup'))
@@ -593,7 +667,7 @@ if not Config.OxInventory then
 					xPlayer.showNotification(_U('threw_weapon_already'))
 				else
 					success = true
-					xPlayer.addWeapon(pickup.name, pickup.count)
+					xPlayer.addWeapon(pickup.name, pickup.count, pickup.batch)
 					xPlayer.setWeaponTint(pickup.name, pickup.tintIndex)
 
 					for k,v in ipairs(pickup.components) do

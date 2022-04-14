@@ -10,6 +10,7 @@ Core.CancelledTimeouts = {}
 Core.RegisteredCommands = {}
 Core.Pickups = {}
 Core.PickupId = 0
+ESX.LastInventory = {}
 
 AddEventHandler('esx:getSharedObject', function(cb)
 	cb(ESX)
@@ -38,12 +39,48 @@ MySQL.ready(function()
 	if not Config.OxInventory then
 		local items = MySQL.query.await('SELECT * FROM items')
 		for k, v in ipairs(items) do
+			if v.batch ~= nil and v.batch ~= '' then
+				v.batch = json.decode(v.batch)
+			end
+			ESX.Items[v.name] = v
+			if not ESX.Items[v.name].canRemove then
+				if v.can_remove ~= nil then
+					ESX.Items[v.name].canRemove = v.can_remove
+				else
+					ESX.Items[v.name].canRemove = true
+				end
+			end
+		end
+		for k,v in pairs(Config.Weapons) do
+			local weight, ammo_weight, label = false, false, false
+			if ESX.Items[v.name] then
+				weight = ESX.Items[v.name].weight
+				ammo_weight = ESX.Items[v.name].ammo_weight or 0
+				label = ESX.Items[v.name].label
+			end
 			ESX.Items[v.name] = {
+				name = v.name,
+				weapon = v.name,
 				label = v.label,
-				weight = v.weight,
-				rare = v.rare,
-				canRemove = v.can_remove
+				ammo = 0,
+				quality = 100,
+				components = {},
+				tintIndex = 0,
+				weight = Config.WeaponWeight or 0,
+				ammo_weight = Config.AmmoWeight or 0,
+				limit = false,
+				rare = false,
+				canRemove = true
 			}
+			if weight then
+				ESX.Items[v.name].weight = weight
+			end
+			if ammo_weight then
+				ESX.Items[v.name].ammo_weight = ammo_weight
+			end
+			if label then
+				ESX.Items[v.name].label = label
+			end
 		end
 	else
 		TriggerEvent('__cfx_export_ox_inventory_Items', function(ref)
@@ -102,7 +139,13 @@ MySQL.ready(function()
 		ESX.Jobs = Jobs
 	end
 
-	print('[^2INFO^7] ESX ^5Legacy^0 initialized')
+	-- print('[^2INFO^7] ESX ^5Legacy^0 initialized')
+print('░██████╗░██╗░██████╗░███╗░░██╗███████╗░█████╗░░█████╗░██████╗░███████╗')
+print('██╔════╝░██║██╔════╝░████╗░██║██╔════╝██╔══██╗██╔══██╗██╔══██╗██╔════╝')
+print('██║░░██╗░██║██║░░██╗░██╔██╗██║█████╗░░██║░░╚═╝██║░░██║██████╔╝█████╗░░')
+print('██║░░╚██╗██║██║░░╚██╗██║╚████║██╔══╝░░██║░░██╗██║░░██║██╔══██╗██╔══╝░░')
+print('╚██████╔╝██║╚██████╔╝██║░╚███║███████╗╚█████╔╝╚█████╔╝██║░░██║███████╗')
+print('░╚═════╝░╚═╝░╚═════╝░╚═╝░░╚══╝╚══════╝░╚════╝░░╚════╝░╚═╝░░╚═╝╚══════╝')
 	StartDBSync()
 	StartPayCheck()
 end)

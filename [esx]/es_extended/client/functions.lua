@@ -467,6 +467,13 @@ function ESX.Game.GetObjects() -- Leave the function for compatibility
 	return GetGamePool('CObject')
 end
 
+function ESX.Game.GetHashKey(modelName)
+	if type(modelName) ~= "number" then
+		modelName = GetHashKey(modelName)
+	end
+	return modelName
+end
+
 function ESX.Game.GetPeds(onlyOtherPeds)
 	local peds, myPed, pool = {}, ESX.PlayerData.ped, GetGamePool('CPed')
 
