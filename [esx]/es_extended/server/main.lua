@@ -176,6 +176,7 @@ function loadESXPlayer(identifier, playerId, isNew)
 	userData.job.grade_name = gradeObject.name
 	userData.job.grade_label = gradeObject.label
 	userData.job.grade_salary = gradeObject.salary
+    userData.job.onDuty = Config.OnDuty
 
 	userData.job.skin_male = {}
 	userData.job.skin_female = {}
@@ -312,14 +313,6 @@ function loadESXPlayer(identifier, playerId, isNew)
 
 	local xPlayer = CreateExtendedPlayer(userData)
 	ESX.Players[playerId] = xPlayer
-
-	if userData.firstname then 
-		xPlayer.set('firstName', userData.firstname)
-		xPlayer.set('lastName', userData.lastname)
-		if userData.dateofbirth then xPlayer.set('dateofbirth', userData.dateofbirth) end
-		if userData.sex then xPlayer.set('sex', userData.sex) end
-		if userData.height then xPlayer.set('height', userData.height) end
-	end
 
 	TriggerEvent('esx:playerLoaded', playerId, xPlayer, isNew)
 
@@ -462,6 +455,11 @@ if not Config.OxInventory then
 		local playerId = source
 		local sourceXPlayer = ESX.GetPlayerFromId(playerId)
 		local targetXPlayer = ESX.GetPlayerFromId(target)
+        local distance = #(GetEntityCoords(GetPlayerPed(playerId)) - GetEntityCoords(GetPlayerPed(target)))
+        if not sourceXPlayer then return end
+        if not targetXPlayer then print("Cheating: " ..  GetPlayerName(playerId)) return end
+        if distance > Config.DistanceGive then print("Cheating: " ..  GetPlayerName(playerId)) return end
+
 
 		local targetName, sourceName
 		if Config.HidePlayerName then
@@ -503,12 +501,20 @@ if not Config.OxInventory then
 		elseif type == 'item_weapon' then
 			if sourceXPlayer.hasWeapon(itemName) then
 				local weaponLabel = ESX.GetWeaponLabel(itemName)
-
 				if not targetXPlayer.hasWeapon(itemName) then
 					local _, weapon = sourceXPlayer.getWeapon(itemName)
 					local _, weaponObject = ESX.GetWeapon(itemName)
 					itemCount = weapon.ammo
-
+					local weaponComponents = ESX.Table.Clone(weapon.components)
+					local weaponTint = weapon.tintIndex
+					if weaponTint then
+                        targetXPlayer.setWeaponTint(itemName, weaponTint)
+					end
+					if weaponComponents then
+                        for k, v in pairs(weaponComponents) do
+                            targetXPlayer.addWeaponComponent(itemName, v)
+                        end
+					end
 					sourceXPlayer.removeWeapon(itemName)
 					targetXPlayer.addWeapon(itemName, itemCount)
 
@@ -737,6 +743,21 @@ AddEventHandler('txAdmin:events:scheduledRestart', function(eventData)
 			Core.SavePlayers()
 		end)
 	end
+end)
+
+RegisterNetEvent('esx:setDuty')
+AddEventHandler('esx:setDuty', function(bool)
+    local xPlayer = ESX.GetPlayerFromId(source)
+    if xPlayer.job.onDuty == bool then return end
+    
+    if bool then
+        xPlayer.setDuty(true)
+        xPlayer.triggerEvent('esx:showNotification', _U('started_duty'))
+    else
+        xPlayer.setDuty(false)
+        xPlayer.triggerEvent('esx:showNotification', _U('stopped_duty'))
+    end
+    TriggerClientEvent('esx:setJob', xPlayer.source, xPlayer.job)
 end)
 
 if Config.EssentialMode then
