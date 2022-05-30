@@ -1,18 +1,18 @@
 SetMapName('San Andreas')
 SetGameType('ESX Legacy')
-	
+
 local newPlayer = 'INSERT INTO `users` SET `accounts` = ?, `identifier` = ?, `group` = ?'
 local loadPlayer = 'SELECT `accounts`, `job`, `job_grade`, `group`, `position`, `inventory`, `skin`, `loadout`'
 
 if Config.Multichar then
-	newPlayer = newPlayer..', `firstname` = ?, `lastname` = ?, `dateofbirth` = ?, `sex` = ?, `height` = ?'
+    newPlayer = newPlayer .. ', `firstname` = ?, `lastname` = ?, `dateofbirth` = ?, `sex` = ?, `height` = ?'
 end
 
 if Config.Multichar or Config.Identity then
-	loadPlayer = loadPlayer..', `firstname`, `lastname`, `dateofbirth`, `sex`, `height`'
+    loadPlayer = loadPlayer .. ', `firstname`, `lastname`, `dateofbirth`, `sex`, `height`'
 end
 
-loadPlayer = loadPlayer..' FROM `users` WHERE identifier = ?'
+loadPlayer = loadPlayer .. ' FROM `users` WHERE identifier = ?'
 
 if Config.Multichar then
 	AddEventHandler('esx:onPlayerJoined', function(src, char, data)
@@ -28,84 +28,86 @@ if Config.Multichar then
 		end
 	end)
 else
-	RegisterNetEvent('esx:onPlayerJoined')
-	AddEventHandler('esx:onPlayerJoined', function()
-		while not next(ESX.Jobs) do Wait(50) end
+    RegisterNetEvent('esx:onPlayerJoined')
+    AddEventHandler('esx:onPlayerJoined', function()
+        local _source = source
+        while not next(ESX.Jobs) do
+            Wait(50)
+        end
 
-		if not ESX.Players[source] then
-			onPlayerJoined(source)
-		end
-	end)
+        if not ESX.Players[_source] then
+            onPlayerJoined(_source)
+        end
+    end)
 end
 
 function onPlayerJoined(playerId)
-	local identifier = ESX.GetIdentifier(playerId)
-	if identifier then
-		if ESX.GetPlayerFromIdentifier(identifier) then
-			DropPlayer(playerId, ('there was an error loading your character!\nError code: identifier-active-ingame\n\nThis error is caused by a player on this server who has the same identifier as you have. Make sure you are not playing on the same Rockstar account.\n\nYour Rockstar identifier: %s'):format(identifier))
-		else
-			local result = MySQL.scalar.await('SELECT 1 FROM users WHERE identifier = ?', { identifier })
-			if result then
-				loadESXPlayer(identifier, playerId, false)
-			else
-				createESXPlayer(identifier, playerId)
-			end
-		end
-	else
-		DropPlayer(playerId, 'there was an error loading your character!\nError code: identifier-missing-ingame\n\nThe cause of this error is not known, your identifier could not be found. Please come back later or report this problem to the server administration team.')
-	end
+    local identifier = ESX.GetIdentifier(playerId)
+    if identifier then
+        if ESX.GetPlayerFromIdentifier(identifier) then
+            DropPlayer(playerId,
+                ('there was an error loading your character!\nError code: identifier-active-ingame\n\nThis error is caused by a player on this server who has the same identifier as you have. Make sure you are not playing on the same Rockstar account.\n\nYour Rockstar identifier: %s'):format(
+                    identifier))
+        else
+            local result = MySQL.scalar.await('SELECT 1 FROM users WHERE identifier = ?', {identifier})
+            if result then
+                loadESXPlayer(identifier, playerId, false)
+            else
+                createESXPlayer(identifier, playerId)
+            end
+        end
+    else
+        DropPlayer(playerId,
+            'there was an error loading your character!\nError code: identifier-missing-ingame\n\nThe cause of this error is not known, your identifier could not be found. Please come back later or report this problem to the server administration team.')
+    end
 end
 
 function createESXPlayer(identifier, playerId, data)
-	local accounts = {}
+    local accounts = {}
 
-	for account,money in pairs(Config.StartingAccountMoney) do
-		accounts[account] = money
-	end
+    for account, money in pairs(Config.StartingAccountMoney) do
+        accounts[account] = money
+    end
 
-	if Core.IsPlayerAdmin(playerId) then
-		print(('^2[INFO] ^0 Player ^5%s ^0Has been granted admin permissions via ^5Ace Perms.^7'):format(playerId))
-		defaultGroup = "admin"
-	else
-		defaultGroup = "user"
-	end
+    if Core.IsPlayerAdmin(playerId) then
+        print(('^2[INFO] ^0 Player ^5%s ^0Has been granted admin permissions via ^5Ace Perms.^7'):format(playerId))
+        defaultGroup = "admin"
+    else
+        defaultGroup = "user"
+    end
 
-	if not Config.Multichar then
-		MySQL.prepare(newPlayer, { json.encode(accounts), identifier, defaultGroup }, function()
-			loadESXPlayer(identifier, playerId, true)
-		end)
-	else
-		MySQL.prepare(newPlayer, {
-			json.encode(accounts),
-			identifier,
-			defaultGroup,
-			data.firstname,
-			data.lastname,
-			data.dateofbirth,
-			data.sex,
-			data.height
-		}, function()
-			loadESXPlayer(identifier, playerId, true)
-		end)
-	end
+    if not Config.Multichar then
+        MySQL.prepare(newPlayer, {json.encode(accounts), identifier, defaultGroup}, function()
+            loadESXPlayer(identifier, playerId, true)
+        end)
+    else
+        MySQL.prepare(newPlayer,
+            {json.encode(accounts), identifier, defaultGroup, data.firstname, data.lastname, data.dateofbirth, data.sex,
+             data.height}, function()
+                loadESXPlayer(identifier, playerId, true)
+            end)
+    end
 end
 
 if not Config.Multichar then
-	AddEventHandler('playerConnecting', function(name, setCallback, deferrals)
-		deferrals.defer()
-		local playerId = source
-		local identifier = ESX.GetIdentifier(playerId)
+    AddEventHandler('playerConnecting', function(name, setCallback, deferrals)
+        deferrals.defer()
+        local playerId = source
+        local identifier = ESX.GetIdentifier(playerId)
 
-		if identifier then
-			if ESX.GetPlayerFromIdentifier(identifier) then
-				deferrals.done(('There was an error loading your character!\nError code: identifier-active\n\nThis error is caused by a player on this server who has the same identifier as you have. Make sure you are not playing on the same account.\n\nYour identifier: %s'):format(identifier))
-			else
-				deferrals.done()
-			end
-		else
-			deferrals.done('There was an error loading your character!\nError code: identifier-missing\n\nThe cause of this error is not known, your identifier could not be found. Please come back later or report this problem to the server administration team.')
-		end
-	end)
+        if identifier then
+            if ESX.GetPlayerFromIdentifier(identifier) then
+                deferrals.done(
+                    ('There was an error loading your character!\nError code: identifier-active\n\nThis error is caused by a player on this server who has the same identifier as you have. Make sure you are not playing on the same account.\n\nYour identifier: %s'):format(
+                        identifier))
+            else
+                deferrals.done()
+            end
+        else
+            deferrals.done(
+                'There was an error loading your character!\nError code: identifier-missing\n\nThe cause of this error is not known, your identifier could not be found. Please come back later or report this problem to the server administration team.')
+        end
+    end)
 end
 
 function loadESXPlayer(identifier, playerId, isNew)
@@ -311,65 +313,66 @@ function loadESXPlayer(identifier, playerId, isNew)
 end
 
 AddEventHandler('chatMessage', function(playerId, author, message)
-	local xPlayer = ESX.GetPlayerFromId(playerId)
-	if message:sub(1, 1) == '/' and playerId > 0 then
-		CancelEvent()
-		local commandName = message:sub(1):gmatch("%w+")()
-		xPlayer.showNotification(_U('commanderror_invalidcommand', commandName))
-	end
+    local xPlayer = ESX.GetPlayerFromId(playerId)
+    if message:sub(1, 1) == '/' and playerId > 0 then
+        CancelEvent()
+        local commandName = message:sub(1):gmatch("%w+")()
+        xPlayer.showNotification(_U('commanderror_invalidcommand', commandName))
+    end
 end)
 
 AddEventHandler('playerDropped', function(reason)
-	local playerId = source
-	local xPlayer = ESX.GetPlayerFromId(playerId)
+    local playerId = source
+    local xPlayer = ESX.GetPlayerFromId(playerId)
 
-	if xPlayer then
-		TriggerEvent('esx:playerDropped', playerId, reason)
+    if xPlayer then
+        TriggerEvent('esx:playerDropped', playerId, reason)
 
-		Core.SavePlayer(xPlayer, function()
-			ESX.Players[playerId] = nil
-		end)
-	end
+        Core.SavePlayer(xPlayer, function()
+            ESX.Players[playerId] = nil
+        end)
+    end
 end)
 
-if Config.Multichar then
-	AddEventHandler('esx:playerLogout', function(playerId)
-		local xPlayer = ESX.GetPlayerFromId(playerId)
-		if xPlayer then
-			TriggerEvent('esx:playerDropped', playerId)
+AddEventHandler('esx:playerLogout', function(playerId, cb)
+    local xPlayer = ESX.GetPlayerFromId(playerId)
+    if xPlayer then
+        TriggerEvent('esx:playerDropped', playerId)
 
-			Core.SavePlayer(xPlayer, function()
-				ESX.Players[playerId] = nil
-			end)
-		end
-		TriggerClientEvent("esx:onPlayerLogout", playerId)
-	end)
-end
+        Core.SavePlayer(xPlayer, function()
+            ESX.Players[playerId] = nil
+            if cb then
+                cb()
+            end
+        end)
+    end
+    TriggerClientEvent("esx:onPlayerLogout", playerId)
+end)
 
 RegisterNetEvent('esx:updateCoords')
 AddEventHandler('esx:updateCoords', function(coords)
-	local xPlayer = ESX.GetPlayerFromId(source)
+    local xPlayer = ESX.GetPlayerFromId(source)
 
-	if xPlayer then
-		xPlayer.updateCoords(coords)
-	end
+    if xPlayer then
+        xPlayer.updateCoords(coords)
+    end
 end)
 
 if not Config.OxInventory then
-	RegisterNetEvent('esx:updateWeaponAmmo')
-	AddEventHandler('esx:updateWeaponAmmo', function(weaponName, ammoCount)
-		local xPlayer = ESX.GetPlayerFromId(source)
+    RegisterNetEvent('esx:updateWeaponAmmo')
+    AddEventHandler('esx:updateWeaponAmmo', function(weaponName, ammoCount)
+        local xPlayer = ESX.GetPlayerFromId(source)
 
-		if xPlayer then
-			xPlayer.updateWeaponAmmo(weaponName, ammoCount)
-		end
-	end)
+        if xPlayer then
+            xPlayer.updateWeaponAmmo(weaponName, ammoCount)
+        end
+    end)
 
-	RegisterNetEvent('esx:giveInventoryItem')
-	AddEventHandler('esx:giveInventoryItem', function(target, type, itemName, itemCount)
-		local playerId = source
-		local sourceXPlayer = ESX.GetPlayerFromId(playerId)
-		local targetXPlayer = ESX.GetPlayerFromId(target)
+    RegisterNetEvent('esx:giveInventoryItem')
+    AddEventHandler('esx:giveInventoryItem', function(target, type, itemName, itemCount)
+        local playerId = source
+        local sourceXPlayer = ESX.GetPlayerFromId(playerId)
+        local targetXPlayer = ESX.GetPlayerFromId(target)
         local distance = #(GetEntityCoords(GetPlayerPed(playerId)) - GetEntityCoords(GetPlayerPed(target)))
         if not sourceXPlayer then return end
         if not targetXPlayer then print("Cheating: " ..  GetPlayerName(playerId)) return end
@@ -422,8 +425,8 @@ if not Config.OxInventory then
 					local weaponTint = weapon.tintIndex
 					if weaponTint then
                         targetXPlayer.setWeaponTint(itemName, weaponTint)
-					end
-					if weaponComponents then
+                    end
+                    if weaponComponents then
                         for k, v in pairs(weaponComponents) do
                             targetXPlayer.addWeaponComponent(itemName, v)
                         end
@@ -579,65 +582,69 @@ if not Config.OxInventory then
 end
 
 ESX.RegisterServerCallback('esx:getPlayerData', function(source, cb)
-	local xPlayer = ESX.GetPlayerFromId(source)
+    local xPlayer = ESX.GetPlayerFromId(source)
 
-	cb({
-		identifier   = xPlayer.identifier,
-		accounts     = xPlayer.getAccounts(),
-		inventory    = xPlayer.getInventory(),
-		job          = xPlayer.getJob(),
-		loadout      = xPlayer.getLoadout(),
-		money        = xPlayer.getMoney()
-	})
+    cb({
+        identifier = xPlayer.identifier,
+        accounts = xPlayer.getAccounts(),
+        inventory = xPlayer.getInventory(),
+        job = xPlayer.getJob(),
+        loadout = xPlayer.getLoadout(),
+        money = xPlayer.getMoney(),
+		position = xPlayer.getCoords(true)
+    })
 end)
 
 ESX.RegisterServerCallback('esx:isUserAdmin', function(source, cb)
-	cb(Core.IsPlayerAdmin(source))
+    cb(Core.IsPlayerAdmin(source))
 end)
 
 ESX.RegisterServerCallback('esx:getOtherPlayerData', function(source, cb, target)
-	local xPlayer = ESX.GetPlayerFromId(target)
+    local xPlayer = ESX.GetPlayerFromId(target)
 
-	cb({
-		identifier   = xPlayer.identifier,
-		accounts     = xPlayer.getAccounts(),
-		inventory    = xPlayer.getInventory(),
-		job          = xPlayer.getJob(),
-		loadout      = xPlayer.getLoadout(),
-		money        = xPlayer.getMoney()
-	})
+    cb({
+        identifier = xPlayer.identifier,
+        accounts = xPlayer.getAccounts(),
+        inventory = xPlayer.getInventory(),
+        job = xPlayer.getJob(),
+        loadout = xPlayer.getLoadout(),
+        money = xPlayer.getMoney(),
+		position = xPlayer.getCoords(true)
+    })
 end)
 
 ESX.RegisterServerCallback('esx:getPlayerNames', function(source, cb, players)
-	players[source] = nil
+    players[source] = nil
 
-	for playerId,v in pairs(players) do
-		local xPlayer = ESX.GetPlayerFromId(playerId)
+    for playerId, v in pairs(players) do
+        local xPlayer = ESX.GetPlayerFromId(playerId)
 
-		if xPlayer then
-			players[playerId] = xPlayer.getName()
-		else
-			players[playerId] = nil
-		end
-	end
+        if xPlayer then
+            players[playerId] = xPlayer.getName()
+        else
+            players[playerId] = nil
+        end
+    end
 
-	cb(players)
+    cb(players)
 end)
 
 AddEventHandler('txAdmin:events:scheduledRestart', function(eventData)
-	if eventData.secondsRemaining == 60 then
-		CreateThread(function()
-			Wait(50000)
-			Core.SavePlayers()
-		end)
-	end
+    if eventData.secondsRemaining == 60 then
+        CreateThread(function()
+            Wait(50000)
+            Core.SavePlayers()
+        end)
+    end
 end)
 
 RegisterNetEvent('esx:setDuty')
 AddEventHandler('esx:setDuty', function(bool)
     local xPlayer = ESX.GetPlayerFromId(source)
-    if xPlayer.job.onDuty == bool then return end
-    
+    if xPlayer.job.onDuty == bool then
+        return
+    end
+
     if bool then
         xPlayer.setDuty(true)
         xPlayer.triggerEvent('esx:showNotification', _U('started_duty'))
