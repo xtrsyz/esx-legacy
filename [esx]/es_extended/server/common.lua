@@ -2,6 +2,7 @@ ESX = {}
 ESX.Players = {}
 ESX.Jobs = {}
 ESX.Items = {}
+ESX.LastInventory = {}
 Core = {}
 Core.UsableItemsCallbacks = {}
 Core.ServerCallbacks = {}
@@ -10,7 +11,7 @@ Core.CancelledTimeouts = {}
 Core.RegisteredCommands = {}
 Core.Pickups = {}
 Core.PickupId = 0
-ESX.LastInventory = {}
+Core.PlayerFunctionOverrides = {}
 
 AddEventHandler('esx:getSharedObject', function(cb)
 	cb(ESX)
@@ -22,6 +23,7 @@ end)
 
 if GetResourceState('ox_inventory') ~= 'missing' then
 	Config.OxInventory = true
+	Config.PlayerFunctionOverride = 'OxInventory'
 	SetConvarReplicated('inventory:framework', 'esx')
 	SetConvarReplicated('inventory:weight', Config.MaxWeight * 1000)
 end
@@ -117,7 +119,7 @@ MySQL.ready(function()
 	for _, v in pairs(Jobs) do
 		if ESX.Table.SizeOf(v.grades) == 0 then
 			Jobs[v.name] = nil
-			print(('[^3WARNING^7] Ignoring job ^5"%s"^0due to no job grades found'):format(v.name))
+			print(('[^3WARNING^7] Ignoring job ^5"%s"^0 due to no job grades found'):format(v.name))
 		end
 	end
 

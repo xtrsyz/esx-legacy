@@ -77,20 +77,29 @@ function ESX.SetPlayerData(key, val)
 	end
 end
 
-function ESX.ShowNotification(msg, flash, saveToBrief, hudColorIndex)
-	-- BeginTextCommandThefeedPost('BeginTextCommandThefeedPost')
-	-- AddTextComponentSubstringPlayerName(msg)
-	-- EndTextCommandThefeedPostTicker(0,1)
-	if Config.ShowNotification then
-		if saveToBrief == nil then saveToBrief = true end
-		BeginTextCommandThefeedPost('BeginTextCommandThefeedPost')
-		AddTextComponentSubstringPlayerName(msg)
-		if hudColorIndex then ThefeedNextPostBackgroundColor(hudColorIndex) end
-		EndTextCommandThefeedPostTicker(flash or false, saveToBrief)
-	else
-		TriggerEvent('showNotification', msg, flash, saveToBrief, hudColorIndex)
-	end
+function ESX.Progressbar(message,length, Options)
+    exports["esx_progressbar"]:Progressbar(message,length, Options)
 end
+
+
+function ESX.ShowNotification(message, type, length)
+    if Config.NativeNotify then 
+     BeginTextCommandThefeedPost('STRING')
+    AddTextComponentSubstringPlayerName(message)
+    EndTextCommandThefeedPostTicker(0,1)
+    else 
+      exports["esx_notify"]:Notify(type, length, message)
+    end
+end
+
+function ESX.TextUI(message, type)
+	exports["esx_textui"]:TextUI(message, type)
+end
+
+function ESX.HideUI()
+	exports["esx_textui"]:HideUI()
+end
+
 
 function ESX.ShowAdvancedNotification(sender, subject, msg, textureDict, iconType, flash, saveToBrief, hudColorIndex)
 	if Config.ShowAdvancedNotification then
@@ -653,9 +662,45 @@ function ESX.Game.GetVehicleProperties(vehicle)
 			wheelHealth[wheelId] = GetVehicleWheelHealth(vehicle, wheelId)
 		end
 
+		local doorsBroken, windowsBroken, tyreBurst = {}, {}, {}
+		local numWheels = tostring(GetVehicleNumberOfWheels(vehicle))
+
+		local TyresIndex = { -- Wheel index list according to the number of vehicle wheels.
+				['2'] = {0, 4}, -- Bike and cycle.
+				['3'] = {0, 1, 4, 5}, -- Vehicle with 3 wheels (get for wheels because some 3 wheels vehicles have 2 wheels on front and one rear or the reverse).
+				['4'] = {0, 1, 4, 5}, -- Vehicle with 4 wheels.
+				['6'] = {0, 1, 2, 3, 4, 5}, -- Vehicle with 6 wheels.
+		}
+
+		for tyre,idx in pairs(TyresIndex[numWheels]) do
+				if IsVehicleTyreBurst(vehicle, idx, false) then
+						tyreBurst[tostring(idx)] = true
+				else
+						tyreBurst[tostring(idx)] = false
+				end
+		end
+
+		for windowId = 0, 7 do -- 13
+				if not IsVehicleWindowIntact(vehicle, windowId) then 
+						windowsBroken[tostring(windowId)] = true
+				else
+						windowsBroken[tostring(windowId)] = false
+				end
+		end
+
+		for doorsId = 0, GetNumberOfVehicleDoors(vehicle) do
+				if IsVehicleDoorDamaged(vehicle, doorsId) then 
+						doorsBroken[tostring(doorsId)] = true
+				else
+						doorsBroken[tostring(doorsId)] = false
+				end
+		end
+
 		return {
 			model             = GetEntityModel(vehicle),
-
+			doorsBroken       = doorsBroken,
+			windowsBroken     = windowsBroken,
+			tyreBurst         = tyreBurst,		
 			plate             = ESX.Math.Trim(GetVehicleNumberPlateText(vehicle)),
 			plateIndex        = GetVehicleNumberPlateTextIndex(vehicle),
 
@@ -739,7 +784,7 @@ function ESX.Game.GetVehicleProperties(vehicle)
 			modWindows        = GetVehicleMod(vehicle, 46),
 			modDoorR          = GetVehicleMod(vehicle, 47),
 			modStandardLivery = GetVehicleMod(vehicle, 48),
-			modLightbar       = GetVehicleMod(vehicle, 49),			
+			modLightbar       = GetVehicleMod(vehicle, 49),
 			modLivery         = GetVehicleLivery(vehicle),
 			bulletProofTyres  = not GetVehicleTyresCanBurst(vehicle)
 		}
@@ -838,6 +883,24 @@ function ESX.Game.SetVehicleProperties(vehicle, props)
 		if props.bulletProofTyres ~= nil then SetVehicleTyresCanBurst(vehicle, not props.bulletProofTyres) end
 		if props.modLivery then SetVehicleLivery(vehicle, props.modLivery) end
 		if props.modStandardLivery then SetVehicleMod(vehicle, 48, props.modStandardLivery, false) end
+
+		if props.windowsBroken then
+			for k, v in pairs(props.windowsBroken) do
+					if v then SmashVehicleWindow(vehicle, tonumber(k)) end
+			end
+		end
+	
+		if props.doorsBroken then
+			for k, v in pairs(props.doorsBroken) do
+				if v then SetVehicleDoorBroken(vehicle, tonumber(k), true) end
+			end
+		end
+		
+		if props.tyreBurst then
+			for k, v in pairs(props.tyreBurst) do
+				if v then SetVehicleTyreBurst(vehicle, tonumber(k), true, 1000.0) end
+			end
+		end
 	end
 end
 
@@ -1121,8 +1184,8 @@ AddEventHandler('esx:serverCallback', function(requestId, ...)
 end)
 
 RegisterNetEvent('esx:showNotification')
-AddEventHandler('esx:showNotification', function(msg)
-	ESX.ShowNotification(msg)
+AddEventHandler('esx:showNotification', function(msg, type, length)
+	ESX.ShowNotification(msg, type, length)
 end)
 
 RegisterNetEvent('esx:showAdvancedNotification')

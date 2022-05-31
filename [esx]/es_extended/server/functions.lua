@@ -177,55 +177,9 @@ function Core.SavePlayer(xPlayer, cb)
 	}, function(affectedRows)
 		if affectedRows == 1 then
 			print(('[^2INFO^7] Saved player ^5"%s^7"'):format(xPlayer.name))
-			ESX.SaveBatchs(xPlayer)
+			TriggerEvent('esx:playerSaved', xPlayer.playerId, xPlayer)
 		end
 		if cb then cb() end
-	end)
-end
-
-ESX.SaveBatchs = function(xPlayer)
-	Citizen.CreateThread(function()
-		local identifier = xPlayer.identifier
-		for k, inventory in pairs(xPlayer.inventory) do
-			local LastInventory = ESX.LastInventory[identifier][inventory.name] or {count = 0, batch = {}}
-			if LastInventory.count ~= inventory.count then
-				if inventory.count < 1 then
-					MySQL.Async.execute('DELETE FROM user_batch WHERE identifier=@identifier AND name=@name', {
-						['@identifier'] = identifier,
-						['@name'] = inventory.name,
-					})
-					for batchNumber, batch in pairs(inventory.batch) do
-						inventory.batch[batchNumber] = nil
-						LastInventory.batch[batchNumber] = nil
-					end
-				else
-					for batchNumber, batch in pairs(inventory.batch) do
-						if batch == false then
-							MySQL.Async.execute('DELETE FROM user_batch WHERE identifier=@identifier AND name=@name AND batch=@batch', {
-								['@identifier'] = identifier,
-								['@name'] = inventory.name,
-								['@batch'] = batchNumber,
-							})
-							inventory.batch[batchNumber] = nil
-							LastInventory.batch[batchNumber] = nil
-						else
-							if not LastInventory.batch[batchNumber] or LastInventory.batch[batchNumber].count ~= batch.count then
-								LastInventory.batch[batchNumber] = {count = batch.count}
-								MySQL.Async.execute('INSERT INTO user_batch (identifier, name, batch, count, info) VALUES (@identifier, @name, @batch, @count, @info) ON DUPLICATE KEY UPDATE count = @count, info = @info', {
-									['@identifier'] = identifier,
-									['@name'] = inventory.name,
-									['@batch'] = batchNumber,
-									['@count'] = batch.count,
-									['@info'] = json.encode(batch.info)
-								})
-							end
-						end
-					end
-				end
-				LastInventory.count = inventory.count
-			end
-		end
-		if ESX.LastInventory[identifier].playerDropped then ESX.LastInventory[identifier] = nil end
 	end)
 end
 
@@ -311,8 +265,26 @@ function ESX.RegisterUsableItem(item, cb)
 	Core.UsableItemsCallbacks[item] = cb
 end
 
-function ESX.UseItem(source, item, data)
-	Core.UsableItemsCallbacks[item](source, item, data)
+function ESX.UseItem(source, item, ...)
+	if ESX.Items[item] then
+		Core.UsableItemsCallbacks[item](source, item, ...)
+	else
+		print(('[^3WARNING^7] Item ^5"%s"^7 was used but does not exist!'):format(item))
+	end
+end
+
+function ESX.RegisterPlayerFunctionOverrides(index,overrides)
+	Core.PlayerFunctionOverrides[index] = overrides
+end
+
+function ESX.SetPlayerFunctionOverride(index)
+	if not index
+	or not Core.PlayerFunctionOverrides[index] 
+	then
+		return print('[^3WARNING^7] No valid index provided.')
+	end
+
+	Config.PlayerFunctionOverride = index
 end
 
 function ESX.GetItemLabel(item)

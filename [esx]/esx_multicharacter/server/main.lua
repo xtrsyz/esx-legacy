@@ -216,6 +216,6 @@ elseif ESX.GetConfig().Multichar == true then
 		TriggerEvent('esx:playerLogout', source)
 	end)
 
-else
-	assert(nil, '^3WARNING: Multicharacter is disabled - please check your ESX configuration^0')
-end
+	else
+		assert(nil, '^3WARNING: Multicharacter is disabled - please check your ESX configuration^0')
+	end

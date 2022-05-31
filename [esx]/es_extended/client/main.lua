@@ -55,6 +55,10 @@ AddEventHandler('esx:playerLoaded', function(xPlayer, isNew, skin)
 		NetworkSetFriendlyFireOption(true)
 	end
 
+	if Config.DisableHealthRegen then
+		SetPlayerHealthRechargeMultiplier(PlayerId(), 0.0)
+	end
+
 	if Config.EnableHud then
 		for k,v in ipairs(ESX.PlayerData.accounts) do
 			local accountTpl = '<div><img src="img/accounts/' .. v.name .. '.png"/>&nbsp;{{money}}</div>'
@@ -71,6 +75,8 @@ AddEventHandler('esx:playerLoaded', function(xPlayer, isNew, skin)
 			grade_label = gradeLabel
 		})
 	end
+
+	FreezeEntityPosition(PlayerPedId(), false)
 	StartServerSyncLoops()
 end)
 
@@ -322,7 +328,7 @@ if not Config.OxInventory then
 	RegisterNetEvent('esx:createMissingPickups')
 	AddEventHandler('esx:createMissingPickups', function(missingPickups)
 		for pickupId, pickup in pairs(missingPickups) do
-			TriggerEvent('esx:createPickup', pickupId, pickup.label, pickup.coords, pickup.type, pickup.name, pickup.components, pickup.tintIndex)
+			TriggerEvent('esx:createPickup', pickupId, pickup.label, pickup.coords - vector3(0,0, 1.0), pickup.type, pickup.name, pickup.components, pickup.tintIndex)
 		end
 	end)
 
