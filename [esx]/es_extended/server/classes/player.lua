@@ -475,7 +475,7 @@ function CreateExtendedPlayer(userData)
 		if not self.hasWeapon(weaponName) then
 			local weaponLabel = ESX.GetWeaponLabel(weaponName)
 			local quality = itemInfo and itemInfo.quality or 100
-			local serial = itemInfo and itemInfo.serial or ESX.RandomString(8)
+			local serial = itemInfo and itemInfo.serial or ESX.GetRandomString(8)
 
 			table.insert(self.loadout, {
 				name = weaponName,

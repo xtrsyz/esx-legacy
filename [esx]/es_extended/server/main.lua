@@ -291,7 +291,6 @@ function loadESXPlayer(identifier, playerId, isNew)
 		if Config.FirstSpawnCoords.x then
 			userData.coords = Config.FirstSpawnCoords
 		else
-			math.randomseed(os.time()*os.clock())
 			userData.coords = Config.FirstSpawnCoords[math.random(1, #Config.FirstSpawnCoords)]
 		end
 	end

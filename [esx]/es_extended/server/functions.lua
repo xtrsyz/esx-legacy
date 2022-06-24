@@ -385,14 +385,3 @@ ESX.GetExpiredTime = function(batch, limit)
 	local remain = limit - (os.time() - time)
 	return remain
 end
-
-ESX.RandomString = function(length)
-	if not length or length <= 0 then return '' end
-	local charset = {}  do -- [0-9a-zA-Z]
-		for c = 48, 57  do table.insert(charset, string.char(c)) end
-		for c = 65, 90  do table.insert(charset, string.char(c)) end
-		for c = 97, 122 do table.insert(charset, string.char(c)) end
-	end
-	math.randomseed(os.clock()^5)
-	return ESX.RandomString(length - 1) .. charset[math.random(1, #charset)]
-end
